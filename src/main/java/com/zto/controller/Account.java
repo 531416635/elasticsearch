@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +39,12 @@ public class Account {
 		page.setStartIndex(1);
 		List<Map<String, Object>> d = elkHelper.queryDate(indices, query);
 		System.out.println(d);
-		log.info(d.size() + "");
+		log.info("queryDate:" + d.size() + "");
 		tity = elkHelper.queryDataByPage(indices, type, query, page);
-		log.info(tity.getPageSize() + "-！！----");
+		log.info("queryDataByPage:" + tity.getPageSize());
+
+		// 查询大于等于多少工资的信息
+		List<String> result = elkHelper.singleSearch(indices, type, query, 47406);
+		log.info("singleSearch:" + result.toString());
 	}
 }

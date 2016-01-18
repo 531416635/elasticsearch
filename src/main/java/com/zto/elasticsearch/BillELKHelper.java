@@ -17,6 +17,7 @@ import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,6 +136,33 @@ public class BillELKHelper implements InitializingBean {
 		log.info("es total cost time: "
 				+ (System.currentTimeMillis() - startTime));
 		return page;
+	}
+
+	/**
+	 * 根据查询条件查询工资大于等于一定范围的值，并返回结果
+	 * 
+	 * @param indices
+	 *            索引集合
+	 * @param types
+	 *            类型集合
+	 * @param query
+	 *            查询条件
+	 * @param count
+	 *            工资大小
+	 * @return SearchHits
+	 */
+	public List<String> singleSearch(String[] indices, String[] types,
+			QueryBuilder query, int count) {
+		SearchResponse response = client.prepareSearch(indices).setTypes(types)
+				.setSearchType(SearchType.DFS_QUERY_THEN_FETCH).setQuery(query)
+				.setPostFilter(QueryBuilders.rangeQuery("balance").gte(count))
+				.setFrom(0).setSize(20).setExplain(true).execute().actionGet();
+		SearchHits result = response.getHits();
+		List<String> dataList = new ArrayList<String>();
+		for (int i = 0; i < result.getHits().length; i++) {
+			dataList.add(result.getAt(i).sourceAsString());
+		}
+		return dataList;
 	}
 
 	/**
