@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -44,7 +45,21 @@ public class Account {
 		log.info("queryDataByPage:" + tity.getPageSize());
 
 		// 查询大于等于多少工资的信息
-		List<String> result = elkHelper.singleSearch(indices, type, query, 47406);
-		log.info("singleSearch:" + result.toString());
+		List<String> singleSearch = elkHelper.singleSearch(indices, type,
+				query, 47406);
+		log.info("singleSearch:" + singleSearch.toString());
+
+		// scrollsSearch
+		QueryBuilder postFilter = QueryBuilders.rangeQuery("age").from(20)
+				.to(30);
+		List<String> scrollsSearch = elkHelper.scrollsSearch(indices, query,
+				postFilter);
+		log.info("scrollsSearch:" + scrollsSearch.toString());
+
+		// multiSearch
+		QueryBuilder builder1 = QueryBuilders.queryStringQuery("Hanson");
+		QueryBuilder builder2 = QueryBuilders.matchQuery("age", 27);
+		List<String> multiSearch = elkHelper.multiSearch(builder1, builder2);
+		log.info("multiSearch:" + multiSearch.toString());
 	}
 }

@@ -10,14 +10,18 @@ import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.get.MultiGetItemResponse;
+import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,7 +153,7 @@ public class BillELKHelper implements InitializingBean {
 	 *            查询条件
 	 * @param count
 	 *            工资大小
-	 * @return SearchHits
+	 * @return List<String>
 	 */
 	public List<String> singleSearch(String[] indices, String[] types,
 			QueryBuilder query, int count) {
@@ -166,15 +170,72 @@ public class BillELKHelper implements InitializingBean {
 	}
 
 	/**
+	 * scrollsSearch
+	 * 
+	 * @param indices
+	 *            索引集合
+	 * @param query
+	 * @return List<String>
+	 */
+	public List<String> scrollsSearch(String[] indices, QueryBuilder query,
+			QueryBuilder postFilter) {
+		SearchResponse scrollRes = client.prepareSearch(indices)
+				.setSearchType(SearchType.SCAN).setScroll(new TimeValue(60000))
+				.setQuery(query).setSize(30).setPostFilter(postFilter)
+				.execute().actionGet();
+		List<String> dataList = new ArrayList<String>();
+		while (true) {
+			for (SearchHit hit : scrollRes.getHits().getHits()) {
+				dataList.add(hit.sourceAsString());
+			}
+			scrollRes = client.prepareSearchScroll(scrollRes.getScrollId())
+					.setScroll(new TimeValue(600000)).execute().actionGet();
+			// Break condition: No hits are returned
+			if (scrollRes.getHits().getHits().length == 0) {
+				log.info("scrollRes.getHits().getHits().length:"
+						+ scrollRes.getHits().getHits().length);
+				break;
+			}
+		}
+		return dataList;
+	}
+
+	/**
+	 * multiSearch
+	 * 
+	 * @param builder1
+	 * @param builder2
+	 * @return List<String>
+	 */
+	public List<String> multiSearch(QueryBuilder builder1, QueryBuilder builder2) {
+
+		SearchRequestBuilder srb1 = client.prepareSearch().setQuery(builder1)
+				.setSize(1);
+		SearchRequestBuilder srb2 = client.prepareSearch().setQuery(builder2)
+				.setSize(1);
+
+		MultiSearchResponse msr = client.prepareMultiSearch().add(srb1)
+				.add(srb2).execute().actionGet();
+		// You will get all individual responses from
+		// MultiSearchResponse#getResponses()
+		long nbHits = 0;
+		List<String> dataList = new ArrayList<String>();
+		for (MultiSearchResponse.Item item : msr.getResponses()) {
+			SearchResponse response = item.getResponse();
+			nbHits += response.getHits().getTotalHits();
+			for (SearchHit hit : response.getHits()) {
+				dataList.add(hit.sourceAsString());
+			}
+		}
+		return dataList;
+	}
+
+	/**
 	 * 关闭client
 	 */
 	public void close() {
 		if (client != null) {
 			client.close();
 		}
-	}
-
-	public static void main(String[] args) {
-
 	}
 }
