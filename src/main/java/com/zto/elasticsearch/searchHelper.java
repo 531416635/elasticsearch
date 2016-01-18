@@ -28,11 +28,11 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zto.entity.User;
 
-public class ELKsearchHelper {
+public class searchHelper {
 
 	public Client client = null;
 	private static final Logger log = LoggerFactory
-			.getLogger(ELKsearchHelper.class);
+			.getLogger(searchHelper.class);
 	public User user;
 
 	// 初始化启动连接

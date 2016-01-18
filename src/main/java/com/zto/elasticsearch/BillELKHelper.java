@@ -290,6 +290,28 @@ public class BillELKHelper implements InitializingBean {
 		}
 		return dataList;
 	}
+	/**
+	 * TermLevelQueries
+	 * 
+	 * @param indices
+	 * @param types
+	 * @param query
+	 * @return List<String>
+	 */
+	public List<String> TermLevelQueries(String[] indices, String[] types,
+			QueryBuilder query) {
+		SearchResponse response = client.prepareSearch().setIndices(indices)
+				.setTypes(types).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+				.setQuery(query).setExplain(true).execute().actionGet();
+
+		SearchHits hits = response.getHits();
+		List<String> dataList = new ArrayList<String>();
+
+		for (SearchHit hit : hits) {
+			dataList.add(hit.sourceAsString());
+		}
+		return dataList;
+	}
 
 	/**
 	 * 关闭client
