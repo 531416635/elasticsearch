@@ -23,6 +23,13 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.aggregations.AggregationBuilder;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramBuilder;
+import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsBuilder;
+import org.elasticsearch.search.aggregations.metrics.min.Min;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -226,6 +233,60 @@ public class BillELKHelper implements InitializingBean {
 			for (SearchHit hit : response.getHits()) {
 				dataList.add(hit.sourceAsString());
 			}
+		}
+		return dataList;
+	}
+
+	/**
+	 * aggregationSearch
+	 * 
+	 * @param field
+	 */
+	public void aggregationSearch(String field) {
+		SearchResponse sr = client
+				.prepareSearch()
+				.addAggregation(
+						AggregationBuilders.terms("Aggregation_field").field(
+								field)).execute().actionGet();
+		log.info("aggregationSearch:" + sr.getHits().getAt(0).sourceAsString());
+	}
+
+	/**
+	 * minSearch
+	 * 
+	 * @param field
+	 */
+	public void minSearch(String field) {
+		SearchResponse sr = client
+				.prepareSearch()
+				.setIndices("bank")
+				.addAggregation(
+						AggregationBuilders.min("min_aggs").field(field))
+				.execute().actionGet();
+		Min min = sr.getAggregations().get("min_aggs");
+		log.info(min.getName() + ":" + min.getValueAsString());
+
+	}
+
+	/**
+	 * FullTextQueries
+	 * 
+	 * @param indices
+	 * @param types
+	 * @param query
+	 * @return List<String>
+	 */
+	public List<String> FullTextQueries(String[] indices, String[] types,
+			QueryBuilder query) {
+		SearchResponse response = client.prepareSearch().setIndices(indices)
+				.setTypes(types).setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+				.setQuery(query).setExplain(true).execute().actionGet();
+
+		SearchHits hits = response.getHits();
+		List<String> dataList = new ArrayList<String>();
+
+		for (SearchHit hit : hits) {
+			dataList.add(hit.sourceAsString());
 		}
 		return dataList;
 	}

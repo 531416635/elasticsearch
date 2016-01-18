@@ -61,5 +61,6 @@ public class Account {
 		QueryBuilder builder2 = QueryBuilders.matchQuery("age", 27);
 		List<String> multiSearch = elkHelper.multiSearch(builder1, builder2);
 		log.info("multiSearch:" + multiSearch.toString());
+
 	}
 }
